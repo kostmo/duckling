@@ -307,6 +307,7 @@ library
                      , Duckling.Distance.Helpers
                      , Duckling.Distance.Rules
                      , Duckling.Distance.Types
+                     , Duckling.DistanceUnits.Types
 
                      -- Duration
                      , Duckling.Duration.AR.Corpus
@@ -851,6 +852,7 @@ test-suite duckling-test
                      , Duckling.Distance.FR.Tests
                      , Duckling.Distance.GA.Tests
                      , Duckling.Distance.HR.Tests
+                     , Duckling.Distance.IT.Tests
                      , Duckling.Distance.KM.Tests
                      , Duckling.Distance.KO.Tests
                      , Duckling.Distance.MN.Tests
@@ -889,8 +891,10 @@ test-suite duckling-test
                      , Duckling.Duration.Tests
 
                      -- Email
+                     , Duckling.Email.DE.Tests
                      , Duckling.Email.EN.Tests
                      , Duckling.Email.FR.Tests
+                     , Duckling.Email.IS.Tests
                      , Duckling.Email.IT.Tests
                      , Duckling.Email.Tests
 

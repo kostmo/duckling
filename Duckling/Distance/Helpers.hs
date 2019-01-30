@@ -7,6 +7,7 @@
 
 
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Duckling.Distance.Helpers
   ( distance
@@ -18,6 +19,8 @@ module Duckling.Distance.Helpers
   , withMin
   , withUnit
   , withValue
+  , toContextualDistance
+  , fromContextualDistance
   ) where
 
 import Prelude
@@ -26,6 +29,7 @@ import Duckling.Dimensions.Types
 import Duckling.Distance.Types (DistanceData(..))
 import Duckling.Types
 import qualified Duckling.Distance.Types as TDistance
+import qualified Duckling.DistanceUnits.Types as DGTypes
 
 -- -----------------------------------------------------------------
 -- Patterns
@@ -69,3 +73,15 @@ withMin from dd = dd {TDistance.minValue = Just from}
 
 withMax :: Double -> DistanceData -> DistanceData
 withMax to dd = dd {TDistance.maxValue = Just to}
+
+-- -----------------------------------------------------------------
+-- Conversion
+
+toContextualDistance :: Double -> TDistance.Unit -> DGTypes.ContextualDistance
+toContextualDistance v u =
+  DGTypes.ContextualDistance v $ DGTypes.toSystemUnit u
+
+fromContextualDistance :: DGTypes.ContextualDistance -> Maybe DistanceData
+fromContextualDistance = \case
+  DGTypes.Nonrelatable -> Nothing
+  (DGTypes.ContextualDistance v u) -> Just $ withUnit (DGTypes.toRawUnit u) $ distance v

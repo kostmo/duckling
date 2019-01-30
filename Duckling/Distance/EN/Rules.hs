@@ -14,6 +14,7 @@ module Duckling.Distance.EN.Rules
   ( rules ) where
 
 
+import Data.Semigroup ((<>))
 import Data.String
 import Data.Text (Text)
 import Prelude
@@ -27,37 +28,6 @@ import Duckling.Types
 import qualified Duckling.Distance.Types as TDistance
 import qualified Duckling.Numeral.Types as TNumeral
 
-ruleDistanceFeetInch :: Rule
-ruleDistanceFeetInch = Rule
-  { name = "<distance|feet> <distance|inch>"
-  , pattern =
-    [ Predicate $ isDistanceOfUnit TDistance.Foot
-    , Predicate $ isDistanceOfUnit TDistance.Inch
-    ]
-  , prod = \case
-      (Token Distance DistanceData {TDistance.value = Just feet}:
-       Token Distance DistanceData {TDistance.value = Just inches}:
-       _) -> Just . Token Distance . withUnit TDistance.Inch . distance $
-        feet * 12 + inches
-      _ -> Nothing
-  }
-
-ruleDistanceFeetAndInch :: Rule
-ruleDistanceFeetAndInch = Rule
-  { name = "<distance|feet> and <distance|inch>"
-  , pattern =
-    [ Predicate $ isDistanceOfUnit TDistance.Foot
-    , regex "and"
-    , Predicate $ isDistanceOfUnit TDistance.Inch
-    ]
-  , prod = \case
-      (Token Distance DistanceData {TDistance.value = Just feet}:
-       _:
-       Token Distance DistanceData {TDistance.value = Just inches}:
-       _) -> Just . Token Distance . withUnit TDistance.Inch . distance $
-        feet * 12 + inches
-      _ -> Nothing
-  }
 
 distances :: [(Text, String, TDistance.Unit)]
 distances = [ -- Imperial
@@ -198,15 +168,54 @@ ruleIntervalMin = Rule
       _ -> Nothing
   }
 
+-- | NOTE: Oxford comma is not supported.
+ruleCompositeDistanceCommasAnd :: Rule
+ruleCompositeDistanceCommasAnd = Rule
+  { name = "composite <distance> (with ,/and)"
+  , pattern =
+    [ Predicate isSimpleDistance
+    , regex ",|and"
+    , Predicate isSimpleDistance
+    ]
+  , prod = \case
+      (Token Distance DistanceData{TDistance.value = Just v1, TDistance.unit = Just u1}:
+       _:
+       Token Distance DistanceData{TDistance.value = Just v2, TDistance.unit = Just u2}:
+       _) | u1 /= u2 && v1 > 0 && v2 > 0 -> Token Distance <$> maybeSummedDistance
+         where
+           maybeSummedDistance = fromContextualDistance $ cd1 <> cd2
+           cd1 = toContextualDistance v1 u1
+           cd2 = toContextualDistance v2 u2
+      _ -> Nothing
+  }
+
+ruleCompositeDistance :: Rule
+ruleCompositeDistance = Rule
+  { name = "composite <distance>"
+  , pattern =
+    [ Predicate isSimpleDistance
+    , Predicate isSimpleDistance
+    ]
+  , prod = \case
+      (Token Distance DistanceData{TDistance.value = Just v1, TDistance.unit = Just u1}:
+       Token Distance DistanceData{TDistance.value = Just v2, TDistance.unit = Just u2}:
+       _) | u1 /= u2 && v1 > 0 && v2 > 0 -> Token Distance <$> maybeSummedDistance
+         where
+           maybeSummedDistance = fromContextualDistance $ cd1 <> cd2
+           cd1 = toContextualDistance v1 u1
+           cd2 = toContextualDistance v2 u2
+      _ -> Nothing
+  }
+
 rules :: [Rule]
 rules =
-  [ ruleDistanceFeetInch
-  , ruleDistanceFeetAndInch
-  , ruleIntervalBetweenNumeral
+  [ ruleIntervalBetweenNumeral
   , ruleIntervalBetween
   , ruleIntervalMax
   , ruleIntervalMin
   , ruleIntervalNumeralDash
   , ruleIntervalDash
-  , rulePrecision]
-  ++ ruleDistances
+  , rulePrecision
+  , ruleCompositeDistanceCommasAnd
+  , ruleCompositeDistance
+  ] ++ ruleDistances
